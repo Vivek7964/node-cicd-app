@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: node-cicd-app
+
+spec:
+  replicas: 2
+
+  selector:
+    matchLabels:
+      app: node-cicd-app
+
+  template:
+    metadata:
+      labels:
+        app: node-cicd-app
+
+    spec:
+      containers:
+        - name: node-cicd-app
+
+          image: YOUR_USERNAME/node-cicd-app:1
+
+          ports:
+            - containerPort: 3000
+
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
