@@ -20,7 +20,7 @@ spec:
       containers:
         - name: node-cicd-app
 
-          image: vivek200420/node-cicd-app:27
+          image: vivek200420/node-cicd-app:28
 
           ports:
             - containerPort: 3000
