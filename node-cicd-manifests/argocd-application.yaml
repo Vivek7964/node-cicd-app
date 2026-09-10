@@ -10,7 +10,7 @@ spec:
   project: default
 
   source:
-    repoURL: https://github.com/Vivek7964/node-cicd-manifests.git
+    repoURL: https://github.com/Vivek7964/node-cicd-app.git
     targetRevision: main
     path: node-cicd-manifests
 
