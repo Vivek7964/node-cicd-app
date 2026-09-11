@@ -5,7 +5,7 @@ const app = express();
 app.get("/", (req, res) => {
     res.json({
         message: "Hello from Node.js CI/CD!",
-        version: "ftesdfatingg.teadsfasdsdfadfamp0.3"
+        version: "ftesdfafatingg.teadsfasdsdfadfamp0.3"
     });
 });
 
