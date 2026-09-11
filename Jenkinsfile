@@ -1,7 +1,27 @@
 pipeline {
 
     agent any
+    triggers {
+        GenericTrigger(
+            genericVariables: [
+                [
+                    key: 'COMMIT_MESSAGE',
+                    value: '$.head_commit.message'
+                ]
+            ],
 
+            causeString: 'GitHub push: $COMMIT_MESSAGE',
+
+            token: 'node-cicd-webhook',
+
+            printContributedVariables: false,
+            printPostContent: false,
+
+            regexpFilterText: '$COMMIT_MESSAGE',
+
+            regexpFilterExpression: '^(?!.*\\[skip ci\\]).*$'
+        )
+    }
     options {
         disableConcurrentBuilds()
     }
