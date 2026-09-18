@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+
+metadata:
+  name: node-cicd-app
+  namespace: argocd
+
+spec:
+
+  project: default
+
+  source:
+    repoURL: https://github.com/Vivek7964/node-cicd-app.git
+    targetRevision: main
+    path: node-cicd-manifests
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: node-app
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+
+    syncOptions:
+      - CreateNamespace=true
