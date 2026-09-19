@@ -5,8 +5,21 @@ application**, demonstrating automated testing, static code analysis,
 containerization, Docker image publishing, Kubernetes manifest updates,
 and continuous deployment to **Amazon EKS** using **Argo CD**.
 
-The project is inspired by the Jenkins Zero To Hero CI/CD workflow and
+The project is inspired by the Jenkins Zero To Hero CI/CD workflow by Abhishek Veeramalla and
 adapted for a lightweight Node.js application.
+
+------------------------------------------------------------------------
+
+## 🏗️ Architecture
+
+### End-to-End CI/CD & GitOps Architecture
+
+The following architecture shows the complete flow from a developer code push through Jenkins CI, SonarQube quality validation, Docker image publishing, GitOps manifest update, Argo CD synchronization, and deployment to Amazon EKS.
+
+<p align="center">
+  <img src="docs/architecture.png" alt="Node.js CI/CD and GitOps Architecture" width="100%">
+</p>
+
 
 ------------------------------------------------------------------------
 
@@ -21,7 +34,7 @@ Developer
     v
 GitHub - Application Repository
     |
-    | Webhook / SCM trigger
+    | generic webhook trigger
     v
 Jenkins
     |
@@ -31,7 +44,7 @@ Jenkins
     |
     +--> SonarQube Code Analysis
     |         |
-    |         +--> Quality Gate FAIL --> Stop pipeline + notification
+    |         +--> Quality Gate FAIL --> Stop pipeline + Report
     |
     +--> Docker Build
     |
@@ -73,100 +86,6 @@ Deployment**:
 
 ------------------------------------------------------------------------
 
-## 🎯 Project Objectives
-
--   Build a complete CI/CD pipeline for a Node.js application.
--   Automate dependency installation and unit/integration testing.
--   Integrate SonarQube for static code analysis.
--   Enforce a quality gate before container publishing.
--   Build versioned Docker images automatically.
--   Push application images to Docker Hub.
--   Implement GitOps using a separate Kubernetes manifest repository.
--   Automatically update Kubernetes image tags using a shell script.
--   Deploy applications to Amazon EKS through Argo CD.
--   Demonstrate rolling deployment and Kubernetes health checks.
--   Keep the architecture simple enough to reproduce as a personal
-    DevOps portfolio project.
-
-------------------------------------------------------------------------
-
-## 🛠️ Technology Stack
-
-  Category                Technology
-  ----------------------- ---------------------------
-  Application             Node.js, Express.js
-  Testing                 Jest, Supertest
-  Source Control          Git, GitHub
-  CI                      Jenkins
-  Code Quality            SonarQube
-  Containerization        Docker
-  Container Registry      Docker Hub
-  Orchestration           Kubernetes
-  Cloud                   Amazon Web Services (AWS)
-  Kubernetes Platform     Amazon EKS
-  GitOps / CD             Argo CD
-  Automation              Bash Shell Script
-  Infrastructure Access   AWS CLI, kubectl
-  Notifications           Slack / Email (optional)
-
-------------------------------------------------------------------------
-
-## 🏗️ Architecture
-
-### End-to-End CI/CD & GitOps Architecture
-
-The following architecture shows the complete flow from a developer code push through Jenkins CI, SonarQube quality validation, Docker image publishing, GitOps manifest update, Argo CD synchronization, and deployment to Amazon EKS.
-
-<p align="center">
-  <img src="docs/architecture.png" alt="Node.js CI/CD and GitOps Architecture" width="100%">
-</p>
-
-### Pipeline Flow
-
-```text
-Developer
-    |
-    | Push Code
-    v
-GitHub - Application Repository
-    |
-    | Webhook / SCM Trigger
-    v
-Jenkins
-    |
-    +--> npm ci
-    |
-    +--> npm test
-    |
-    +--> SonarQube Analysis
-    |         |
-    |         +--> FAIL --> Report / Exit
-    |
-    +--> Docker Build
-    |
-    +--> Docker Push
-              |
-              v
-          Docker Hub
-              |
-              v
-       update-image.sh
-              |
-              v
-GitHub - Kubernetes Manifest Repository
-              |
-              | GitOps change
-              v
-           Argo CD
-              |
-              | Sync
-              v
-        Amazon EKS
-              |
-              v
-       Node.js Application
-```
-
 ## 🔄 CI/CD Workflow
 
 ### 1. Developer pushes code
@@ -176,9 +95,13 @@ GitHub.
 
 ``` bash
 git add .
-git commit -m "Update application"
+git commit -m "Added version 1.0.4"
 git push origin main
 ```
+<p align="center">
+  <img src="docs/screenshots/01-Github-commit-version-1.0.4.jpeg" alt="Github commit" width="100%">
+</p>
+
 
 ------------------------------------------------------------------------
 
@@ -221,6 +144,11 @@ npm test
 
 Jest and Supertest validate the Node.js application.
 
+<p align="center">
+  <img src="docs/screenshots/03-jenkins-stages-success.jpeg" alt="Jenkins stages sucsess" width="100%">
+</p>
+
+
 If tests fail:
 
 ``` text
@@ -248,6 +176,11 @@ The source code is analyzed by SonarQube for areas such as:
 
 A quality gate is used to decide whether the pipeline can continue.
 
+<p align="center">
+  <img src="docs/screenshots/04-sonarqube-analysis.jpeg" alt="Sonarqube analysis" width="100%">
+</p>
+
+
 ``` text
 SonarQube
     |
@@ -263,7 +196,7 @@ SonarQube
 After the quality checks pass, Jenkins builds the application image:
 
 ``` bash
-docker build -t <dockerhub-user>/node-cicd-app:<BUILD_NUMBER> .
+docker build -t <dockerhub-user>/node-cicd-app:08 .
 ```
 
 The Jenkins build number is used as the image tag so releases can be
@@ -272,9 +205,9 @@ traced back to individual CI builds.
 Example:
 
 ``` text
-node-cicd-app:15
-node-cicd-app:16
-node-cicd-app:17
+node-cicd-app:07
+node-cicd-app:06
+node-cicd-app:05
 ```
 
 ------------------------------------------------------------------------
@@ -285,8 +218,12 @@ Jenkins authenticates to Docker Hub using Jenkins credentials and pushes
 the immutable build image:
 
 ``` bash
-docker push <dockerhub-user>/node-cicd-app:<BUILD_NUMBER>
+docker push <dockerhub-user>/node-cicd-app:08 
 ```
+<p align="center">
+  <img src="docs/screenshots/05-dockerhub-image.jpeg" alt="Docker Hub image" width="100%">
+</p>
+
 
 ------------------------------------------------------------------------
 
@@ -297,13 +234,13 @@ A Bash script updates the image tag in the GitOps repository.
 Example:
 
 ``` yaml
-image: <dockerhub-user>/node-cicd-app:15
+image: <dockerhub-user>/node-cicd-app:07
 ```
 
 becomes:
 
 ``` yaml
-image: <dockerhub-user>/node-cicd-app:16
+image: <dockerhub-user>/node-cicd-app:08
 ```
 
 The script commits and pushes the change to the Kubernetes manifest
@@ -329,6 +266,10 @@ Sync
     v
 Kubernetes
 ```
+<p align="center">
+  <img src="docs/screenshots/09-argocd-application.jpeg" alt="argocd application" width="100%">
+</p>
+
 
 ------------------------------------------------------------------------
 
@@ -339,6 +280,13 @@ Kubernetes updates the application deployment.
 The application is exposed through a Kubernetes Service and can use
 readiness/liveness probes to verify application health.
 
+<p align="center">
+  <img src="docs/screenshots/06-kubernetes-pods.jpeg" alt="Kubernetes pods" width="100%">
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/10-running-application.jpeg" alt="Application running" width="100%">
+</p>
 ------------------------------------------------------------------------
 
 ## 📁 Repository Structure
@@ -349,37 +297,36 @@ readiness/liveness probes to verify application health.
 node-cicd-app/
 │
 ├── app.js
-├── server.js
 ├── package.json
 ├── package-lock.json
-│
-├── test/
-│   └── app.test.js
-│
 ├── Dockerfile
-├── .dockerignore
 ├── Jenkinsfile
-├── sonar-project.properties
+├── .gitignore
+├── README.md
 │
-├── scripts/
-│   └── update-image.sh
+├── node-cicd-manifests/
+│   ├── deployment.yaml
+│   └── service.yaml
+│   └── argocd-application.yaml
 │
-└── README.md
+└── docs/
+    │
+    ├── architecture.png
+    │
+    └── screenshots/
+        ├── 01-Github-commit-version-1.0.4.png
+        ├── 02-jenkins-pipeline-webhook-trigger.png
+        ├── 03-jenkins-stages-success.png
+        ├── 04-sonarqube-analysis.png
+        ├── 05-dockerhub-image.png
+        ├── 06-kubernetes-pods.png
+        ├── 07-kubernetes-service.png
+        ├── 08-argocd-synced.png
+        ├── 09-argocd-application.png
+        ├── 10-running-application.jpeg
+        ├── 11-gitops-commit.png
+        └── 12-webhook-loop-prevention.png
 ```
-
-### Kubernetes Manifest Repository
-
-``` text
-node-cicd-manifests/
-│
-├── deployment.yaml
-├── service.yaml
-├── argocd-application.yaml
-└── README.md
-```
-
-Keeping application code and Kubernetes manifests in separate
-repositories demonstrates a GitOps-oriented workflow.
 
 ------------------------------------------------------------------------
 
@@ -590,61 +537,6 @@ Recommended practices:
 
 ------------------------------------------------------------------------
 
-## 📊 CI Pipeline Stages
-
-``` text
-+--------------------+
-| Checkout           |
-+---------+----------+
-          |
-          v
-+--------------------+
-| npm ci             |
-+---------+----------+
-          |
-          v
-+--------------------+
-| npm test           |
-+---------+----------+
-          |
-          v
-+--------------------+
-| SonarQube Analysis |
-+---------+----------+
-          |
-          v
-+--------------------+
-| Quality Gate       |
-+---------+----------+
-          |
-          v
-+--------------------+
-| Docker Build       |
-+---------+----------+
-          |
-          v
-+--------------------+
-| Docker Push        |
-+---------+----------+
-          |
-          v
-+--------------------+
-| Update GitOps Repo |
-+---------+----------+
-          |
-          v
-+--------------------+
-| Argo CD Sync       |
-+---------+----------+
-          |
-          v
-+--------------------+
-| Amazon EKS         |
-+--------------------+
-```
-
-------------------------------------------------------------------------
-
 ## 🛑 Failure Handling
 
 The pipeline is designed to stop before deployment when validation
@@ -677,25 +569,6 @@ SonarQube
 
 The Docker image and GitOps manifest are not updated when the required
 CI checks fail.
-
-------------------------------------------------------------------------
-
-## 🔔 Notifications
-
-The pipeline can be integrated with:
-
--   Slack
--   Email
--   Microsoft Teams
--   Other Jenkins-supported notification mechanisms
-
-Notifications can be triggered for:
-
--   Successful builds
--   Failed builds
--   Test failures
--   SonarQube quality failures
--   Deployment failures
 
 ------------------------------------------------------------------------
 
@@ -766,162 +639,6 @@ http://localhost:3000/health
 
 ------------------------------------------------------------------------
 
-## 📌 Future Improvements
-
-Potential improvements for the project include:
-
--   Add Helm charts for Kubernetes deployment.
--   Add Kubernetes Horizontal Pod Autoscaler.
--   Add Prometheus and Grafana monitoring.
--   Add centralized logging with Loki.
--   Add Trivy container vulnerability scanning.
--   Add OWASP dependency scanning.
--   Replace Docker Hub with Amazon ECR.
--   Use AWS Secrets Manager for runtime secrets.
--   Use GitHub Actions as an alternative CI implementation.
--   Move Jenkins to a dedicated CI worker when moving toward a
-    production-style environment.
--   Add AWS Load Balancer Controller and an Ingress.
--   Add Terraform to provision the AWS infrastructure.
--   Add automated rollback strategies.
--   Add deployment approval gates for production environments.
-
-------------------------------------------------------------------------
-
-## 📸 Pipeline Evidence
-
-The following screenshots capture the key stages of the implemented pipeline.
-
-### 1. Jenkins CI Pipeline
-
-Shows the Jenkins pipeline executing the Node.js CI stages, including dependency installation, testing, SonarQube analysis, Docker build, and image publishing.
-
-<p align="center">
-  <img src="docs/jenkins-pipeline.png" alt="Jenkins CI Pipeline" width="90%">
-</p>
-
-### 2. SonarQube Code Analysis
-
-Shows the SonarQube analysis and quality results used as a validation stage before the Docker image is released.
-
-<p align="center">
-  <img src="docs/sonarqube-analysis.png" alt="SonarQube Code Analysis" width="90%">
-</p>
-
-### 3. Docker Hub Image
-
-Shows the versioned Node.js application image published by Jenkins after the CI checks pass.
-
-<p align="center">
-  <img src="docs/dockerhub-image.png" alt="Docker Hub Node.js Image" width="90%">
-</p>
-
-### 4. Argo CD GitOps Synchronization
-
-Shows Argo CD detecting the GitOps manifest change and synchronizing the new application version to Kubernetes.
-
-<p align="center">
-  <img src="docs/argocd-sync.png" alt="Argo CD GitOps Synchronization" width="90%">
-</p>
-
-### Architecture + Evidence
-
-```text
-                    CI
-Developer → GitHub → Jenkins → Tests → SonarQube
-                              │
-                              ▼
-                         Quality Gate
-                              │
-                              ▼
-                       Docker Build/Push
-                              │
-                              ▼
-                         Docker Hub
-                              │
-                              ▼
-                       GitOps Manifest
-                              │
-                              ▼
-                           Argo CD
-                              │
-                              ▼
-                           AWS EKS
-                              │
-                              ▼
-                        Node.js App
-```
-
-> **Note:** Keep the image filenames exactly as shown above and place them under the repository's `docs/` directory so the relative Markdown paths work correctly on GitHub.
-
-## 🎓 DevOps Concepts Demonstrated
-
-This project demonstrates practical experience with:
-
--   CI/CD pipeline design
--   Git-based workflows
--   Jenkins Pipeline
--   Automated testing
--   Static code analysis
--   Quality gates
--   Docker image creation
--   Container registries
--   Kubernetes deployments
--   Kubernetes health probes
--   Amazon EKS
--   GitOps
--   Argo CD
--   Infrastructure/application separation
--   Automated manifest updates
--   Versioned container images
--   Credential management
--   Deployment automation
--   Failure handling
-
-------------------------------------------------------------------------
-
-## 💼 Resume Description
-
-### Node.js CI/CD & GitOps Deployment Platform
-
-**Tech:** Jenkins, SonarQube, Docker, Docker Hub, Kubernetes, Amazon
-EKS, Argo CD, GitHub, Bash
-
--   Built an end-to-end CI/CD pipeline for a containerized Node.js
-    application using Jenkins, automated npm testing, SonarQube quality
-    gates, and Docker image publishing.
--   Implemented GitOps-based continuous delivery using a separate
-    Kubernetes manifest repository and Argo CD on Amazon EKS.
--   Automated Kubernetes image-tag updates with a Bash script, enabling
-    Jenkins-to-GitOps-to-Argo CD deployment flow with versioned Docker
-    images.
--   Configured Kubernetes deployments with multiple replicas, resource
-    requests/limits, readiness probes, and liveness probes for reliable
-    application rollout.
--   Implemented credential-based authentication for GitHub, Docker Hub,
-    and SonarQube while keeping secrets out of source control.
-
-------------------------------------------------------------------------
-
-## ⭐ Project Highlights
-
-``` text
-✓ Automated CI pipeline
-✓ Automated testing
-✓ SonarQube quality gate
-✓ Docker image versioning
-✓ Docker Hub publishing
-✓ GitOps workflow
-✓ Automated manifest update
-✓ Argo CD continuous deployment
-✓ Amazon EKS deployment
-✓ Kubernetes health checks
-✓ Failure handling
-✓ Separate application and manifest repositories
-```
-
-------------------------------------------------------------------------
-
 ## 📄 License
 
 This project is intended for educational and portfolio purposes.
@@ -935,6 +652,6 @@ publicly.
 
 **Your Name**
 
-GitHub: `https://github.com/<your-username>`
+GitHub: `https://github.com/Vivek7964`
 
-LinkedIn: `https://www.linkedin.com/in/<your-profile>/`
+LinkedIn: `https://www.linkedin.com/in/bukkasamudram-vivekananda-reddy-244808294/`
