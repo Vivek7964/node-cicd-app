@@ -643,8 +643,6 @@ http://localhost:3000/health
 
 This project is intended for educational and portfolio purposes.
 
-Add your preferred license if you plan to distribute the project
-publicly.
 
 ------------------------------------------------------------------------
 
