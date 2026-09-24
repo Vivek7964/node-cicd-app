@@ -1,7 +1,3 @@
-
-
-https://github.com/user-attachments/assets/9dedb8ae-5786-4940-a79c-78991d581c42
-
 # Node.js CI/CD, GitOps & Observability Platform
 
 A production-style **CI/CD, GitOps, Kubernetes, and observability pipeline for a Node.js application**, demonstrating automated testing, static code analysis, containerization, Docker image publishing, Kubernetes manifest updates, continuous deployment to **Amazon EKS** using **Argo CD**, and application monitoring using **Prometheus and Grafana**.
@@ -28,7 +24,7 @@ The following architecture shows the complete flow from a developer code push th
 
 Watch the complete project demonstration:
 
-https://github.com/user-attachments/assets/344b8398-4c95-47fa-acae-fc4dfb6408ff
+https://github.com/user-attachments/assets/546d1cbe-99a5-4f3b-a427-ea4e743add92
 
 ------------------------------------------------------------------------
 
