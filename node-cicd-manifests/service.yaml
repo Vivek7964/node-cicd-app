@@ -3,11 +3,13 @@ kind: Service
 metadata:
   name: node-cicd-app
   namespace: node-app
+  labels:
+    app: node-cicd-app
 spec:
-  type: LoadBalancer
   selector:
     app: node-cicd-app
   ports:
     - name: http
       port: 80
       targetPort: 3000
+  type: LoadBalancer
