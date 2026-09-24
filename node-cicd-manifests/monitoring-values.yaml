@@ -1,0 +1,9 @@
+prometheus:
+  prometheusSpec:
+
+    serviceMonitorSelectorNilUsesHelmValues: false
+
+    serviceMonitorNamespaceSelector: {}
+
+grafana:
+  enabled: true

@@ -1,0 +1,25 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+
+metadata:
+  name: node-cicd-app
+  namespace: node-app
+
+  labels:
+    release: monitoring
+
+spec:
+
+  selector:
+    matchLabels:
+      app: node-cicd-app
+
+  namespaceSelector:
+    matchNames:
+      - node-app
+
+  endpoints:
+
+    - port: http
+      path: /metrics
+      interval: 15s
