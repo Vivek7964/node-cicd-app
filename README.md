@@ -1,25 +1,30 @@
-# Node.js CI/CD Pipeline with Jenkins, SonarQube, Docker, Argo CD & Amazon EKS
+# Node.js CI/CD, GitOps & Observability Platform
 
-A production-style **CI/CD and GitOps pipeline for a Node.js
-application**, demonstrating automated testing, static code analysis,
-containerization, Docker image publishing, Kubernetes manifest updates,
-and continuous deployment to **Amazon EKS** using **Argo CD**.
+A production-style **CI/CD, GitOps, Kubernetes, and observability pipeline for a Node.js application**, demonstrating automated testing, static code analysis, containerization, Docker image publishing, Kubernetes manifest updates, continuous deployment to **Amazon EKS** using **Argo CD**, and application monitoring using **Prometheus and Grafana**.
 
-The project is inspired by the Jenkins Zero To Hero CI/CD workflow by Abhishek Veeramalla and
-adapted for a lightweight Node.js application.
+The project is inspired by the Jenkins Zero To Hero CI/CD workflow by Abhishek Veeramalla and adapted for a lightweight Node.js application.
 
 ------------------------------------------------------------------------
 
 ## 🏗️ Architecture
 
-### End-to-End CI/CD & GitOps Architecture
+### End-to-End CI/CD, GitOps & Observability Architecture
 
-The following architecture shows the complete flow from a developer code push through Jenkins CI, SonarQube quality validation, Docker image publishing, GitOps manifest update, Argo CD synchronization, and deployment to Amazon EKS.
+The following architecture shows the complete flow from a developer code push through Jenkins CI, SonarQube quality validation, Docker image publishing, Kubernetes manifest update, Argo CD synchronization, deployment to Amazon EKS, and application observability using Prometheus and Grafana.
 
 <p align="center">
-  <img src="docs/architecture.png" alt="Node.js CI/CD and GitOps Architecture" width="100%">
+
+  <img src="docs/architecture.png" alt="Node.js CI/CD GitOps and Observability Architecture" width="100%">
+
 </p>
 
+------------------------------------------------------------------------
+
+## 🎥 Project Demo
+
+Watch the complete project demonstration:
+
+<linkgithub>
 
 ------------------------------------------------------------------------
 
@@ -27,24 +32,24 @@ The following architecture shows the complete flow from a developer code push th
 
 This project implements an end-to-end DevOps workflow:
 
-``` text
+```text
 Developer
     |
     | git push
     v
-GitHub - Application Repository
+GitHub Repository
     |
-    | generic webhook trigger
+    | Generic Webhook Trigger
     v
 Jenkins
     |
-    +--> npm install
+    +--> npm ci
     |
     +--> npm test
     |
     +--> SonarQube Code Analysis
     |         |
-    |         +--> Quality Gate FAIL --> Stop pipeline + Report
+    |         +--> Quality Gate FAIL --> Stop pipeline
     |
     +--> Docker Build
     |
@@ -57,9 +62,9 @@ Jenkins
        update-image.sh
               |
               v
-GitHub - Kubernetes Manifest Repository
+   node-cicd-manifests/
               |
-              | GitOps change
+              | Git commit
               v
            Argo CD
               |
@@ -69,47 +74,59 @@ GitHub - Kubernetes Manifest Repository
               |
               v
        Node.js Application
+              |
+              | /metrics
+              v
+          Prometheus
+              |
+              v
+           Grafana
 ```
 
-The pipeline separates **Continuous Integration** from **Continuous
-Deployment**:
+The project uses a **single GitHub repository** containing both the Node.js application source code and Kubernetes manifests.
 
--   **Jenkins** handles CI: build, test, code analysis, container build,
-    and image publishing.
--   **SonarQube** performs static code analysis and quality validation.
--   **Docker Hub** stores versioned container images.
--   A lightweight **shell script** updates the Kubernetes image tag in
-    the GitOps repository.
--   **Argo CD** watches the manifest repository and synchronizes changes
-    to Kubernetes.
--   **Amazon EKS** runs the containerized Node.js application.
+The pipeline separates **Continuous Integration**, **Continuous Deployment**, and **Observability**:
+
+- **Jenkins** handles CI: build, test, code analysis, container build, and image publishing.
+- **SonarQube** performs static code analysis and quality validation.
+- **Docker Hub** stores versioned container images.
+- A lightweight **Bash shell script** updates the Kubernetes image tag.
+- **Argo CD** watches the Kubernetes manifests stored in Git and synchronizes changes to Kubernetes.
+- **Amazon EKS** runs the containerized Node.js application.
+- **Prometheus** collects application and Kubernetes metrics.
+- **Grafana** visualizes the collected metrics through dashboards.
 
 ------------------------------------------------------------------------
 
-## 🔄 CI/CD Workflow
+# 🔄 CI/CD Workflow
 
-### 1. Developer pushes code
+## 1. Developer pushes code
 
-A developer modifies the Node.js application and pushes the changes to
-GitHub.
+A developer modifies the Node.js application and pushes the changes to GitHub.
 
-``` bash
+```bash
 git add .
+
 git commit -m "Added version 1.0.4"
+
 git push origin main
 ```
+
 <p align="center">
-  <img src="docs/screenshots/01-Github-commit-version-1.0.4.jpeg" alt="Github commit" width="100%">
+
+  <img src="docs/screenshots/01-Github-commit-version-1.0.4.jpeg" alt="GitHub commit" width="100%">
+
 </p>
 
+The GitHub push triggers the Jenkins pipeline.
 
 ------------------------------------------------------------------------
 
-### 2. Jenkins starts the pipeline
+## 2. Jenkins starts the pipeline
 
-Jenkins checks out the latest application source code.
+Jenkins checks out the latest application source code from GitHub.
 
-``` text
+```text
 GitHub
    |
    v
@@ -119,69 +136,81 @@ Jenkins
 Checkout
 ```
 
+Jenkins then executes the CI pipeline stages defined in the `Jenkinsfile`.
+
 ------------------------------------------------------------------------
 
-### 3. Install dependencies
+## 3. Install dependencies
 
 Jenkins executes:
 
-``` bash
+```bash
 npm ci
 ```
 
-This installs dependencies from `package-lock.json` in a reproducible
-way.
+This installs dependencies from `package-lock.json` in a reproducible way.
+
+Using `npm ci` ensures that the CI environment uses the dependency versions defined in the lock file.
 
 ------------------------------------------------------------------------
 
-### 4. Run tests
+## 4. Run tests
 
 The pipeline executes:
 
-``` bash
+```bash
 npm test
 ```
 
 Jest and Supertest validate the Node.js application.
 
 <p align="center">
-  <img src="docs/screenshots/03-jenkins-stages-success.jpeg" alt="Jenkins stages sucsess" width="100%">
+
+  <img src="docs/screenshots/03-jenkins-stages-success.jpeg" alt="Jenkins stages success" width="100%">
+
 </p>
 
+The tests validate application endpoints such as:
+
+```text
+GET /
+GET /health
+```
 
 If tests fail:
 
-``` text
+```text
 Pipeline
    |
    +--> Test FAILED
-           |
-           v
+          |
+          v
       Pipeline stops
 ```
 
-No Docker image is released.
+No Docker image is released when the test stage fails.
 
 ------------------------------------------------------------------------
 
-### 5. SonarQube analysis
+## 5. SonarQube analysis
 
 The source code is analyzed by SonarQube for areas such as:
 
--   Bugs
--   Vulnerabilities
--   Code smells
--   Duplicated code
--   Test coverage
+- Bugs
+- Vulnerabilities
+- Code smells
+- Duplicated code
+- Test coverage
 
 A quality gate is used to decide whether the pipeline can continue.
 
 <p align="center">
-  <img src="docs/screenshots/04-sonarqube-analysis.jpeg" alt="Sonarqube analysis" width="100%">
+
+  <img src="docs/screenshots/04-sonarqube-analysis.jpeg" alt="SonarQube analysis" width="100%">
+
 </p>
 
-
-``` text
+```text
 SonarQube
     |
     +---- PASS ---> Docker Build
@@ -189,72 +218,126 @@ SonarQube
     +---- FAIL ---> Report + Exit
 ```
 
+The Docker image is built only after the required CI checks successfully complete.
+
 ------------------------------------------------------------------------
 
-### 6. Build Docker image
+## 6. Build Docker image
 
 After the quality checks pass, Jenkins builds the application image:
 
-``` bash
+```bash
 docker build -t <dockerhub-user>/node-cicd-app:08 .
 ```
 
-The Jenkins build number is used as the image tag so releases can be
-traced back to individual CI builds.
+The Jenkins build number is used as the Docker image tag so releases can be traced back to individual CI builds.
 
 Example:
 
-``` text
-node-cicd-app:07
-node-cicd-app:06
+```text
 node-cicd-app:05
+node-cicd-app:06
+node-cicd-app:07
+node-cicd-app:08
 ```
+
+This provides a simple versioning mechanism for container images.
 
 ------------------------------------------------------------------------
 
-### 7. Push image to Docker Hub
+## 7. Push image to Docker Hub
 
-Jenkins authenticates to Docker Hub using Jenkins credentials and pushes
-the immutable build image:
+Jenkins authenticates to Docker Hub using Jenkins credentials and pushes the build image:
 
-``` bash
-docker push <dockerhub-user>/node-cicd-app:08 
+```bash
+docker push <dockerhub-user>/node-cicd-app:08
 ```
+
 <p align="center">
+
   <img src="docs/screenshots/05-dockerhub-image.jpeg" alt="Docker Hub image" width="100%">
+
 </p>
 
+The image is now available for deployment to Kubernetes.
 
 ------------------------------------------------------------------------
 
-### 8. Update Kubernetes manifest
+# 🔀 GitOps Deployment
 
-A Bash script updates the image tag in the GitOps repository.
+## 8. Update Kubernetes manifest
+
+The Kubernetes manifests are maintained inside the **same GitHub repository** as the Node.js application.
+
+The Kubernetes configuration is located under:
+
+```text
+node-cicd-manifests/
+```
+
+The Bash script updates the image tag in:
+
+```text
+node-cicd-manifests/deployment.yaml
+```
 
 Example:
 
-``` yaml
+```yaml
 image: <dockerhub-user>/node-cicd-app:07
 ```
 
 becomes:
 
-``` yaml
+```yaml
 image: <dockerhub-user>/node-cicd-app:08
 ```
 
-The script commits and pushes the change to the Kubernetes manifest
-repository.
+The script then:
+
+1. Reads the Jenkins build number.
+2. Updates the Docker image tag.
+3. Commits the Kubernetes manifest change.
+4. Pushes the change to GitHub.
+
+Example:
+
+```text
+Jenkins Build #08
+       |
+       v
+update-image.sh
+       |
+       v
+deployment.yaml
+       |
+       v
+GitHub
+```
+
+The Git commit uses `[skip ci]` to prevent the manifest update from unnecessarily triggering another CI pipeline.
+
+Example:
+
+```text
+Update image to build 08 [skip ci]
+```
+
+<p align="center">
+
+  <img src="docs/screenshots/11-gitops-commit.jpeg" alt="GitOps commit" width="100%">
+
+</p>
 
 ------------------------------------------------------------------------
 
-### 9. Argo CD detects the Git change
+## 9. Argo CD detects the Git change
 
-Argo CD continuously monitors the manifest repository.
+Argo CD continuously monitors the Kubernetes manifests stored in the GitHub repository.
 
 When the image tag changes:
 
-``` text
+```text
 Git change
     |
     v
@@ -266,47 +349,239 @@ Sync
     v
 Kubernetes
 ```
+
 <p align="center">
-  <img src="docs/screenshots/09-argocd-application.jpeg" alt="argocd application" width="100%">
+
+  <img src="docs/screenshots/09-argocd-application.jpeg" alt="Argo CD application" width="100%">
+
 </p>
 
+Argo CD compares the desired Kubernetes state stored in Git with the actual state running in the Amazon EKS cluster.
+
+When a difference is detected, Argo CD synchronizes the application.
+
+<p align="center">
+
+  <img src="docs/screenshots/08-argocd-synced.jpeg" alt="Argo CD synchronized application" width="100%">
+
+</p>
 
 ------------------------------------------------------------------------
 
-### 10. Kubernetes deploys the new version
+# ☸️ Kubernetes Deployment
 
-Kubernetes updates the application deployment.
+## 10. Kubernetes deploys the new version
 
-The application is exposed through a Kubernetes Service and can use
-readiness/liveness probes to verify application health.
+Kubernetes updates the application deployment using the image tag specified in the Git-managed deployment manifest.
+
+The application uses:
+
+- Multiple replicas
+- Resource requests
+- Resource limits
+- Readiness probes
+- Liveness probes
+
+Example:
+
+```yaml
+replicas: 2
+```
 
 <p align="center">
+
   <img src="docs/screenshots/06-kubernetes-pods.jpeg" alt="Kubernetes pods" width="100%">
+
 </p>
+
+The application is exposed through a Kubernetes Service.
+
+The request flow is:
+
+```text
+Internet
+    |
+    v
+AWS Load Balancer
+    |
+    v
+Kubernetes Service
+    |
+    v
+Node.js Pods
+    |
+    v
+Port 3000
+```
+
+The application can then be accessed through the AWS Load Balancer endpoint.
 
 <p align="center">
-  <img src="docs/screenshots/10-running-application.jpeg" alt="Application running" width="100%">
+
+  <img src="docs/screenshots/10-running-application.jpeg" alt="Running Node.js application" width="100%">
+
 </p>
+
 ------------------------------------------------------------------------
 
-## 📁 Repository Structure
+# 📊 Observability
 
-### Application Repository
+The project implements application and Kubernetes observability using:
 
-``` text
+- Prometheus
+- Grafana
+- Kubernetes ServiceMonitor
+- Prometheus Node.js client
+- PromQL
+- Kubernetes metrics
+
+The observability workflow is:
+
+```text
+Node.js Application
+       |
+       | /metrics
+       v
+ServiceMonitor
+       |
+       v
+Prometheus
+       |
+       | PromQL
+       v
+Grafana
+       |
+       v
+Observability Dashboard
+```
+
+------------------------------------------------------------------------
+
+## 11. Prometheus collects application metrics
+
+Prometheus collects metrics from the Node.js application through the `/metrics` endpoint.
+
+The application exposes metrics such as:
+
+- HTTP request count
+- HTTP request rate
+- Node.js memory usage
+- Node.js CPU usage
+- Process metrics
+
+Prometheus uses a Kubernetes `ServiceMonitor` to discover the application and periodically scrape its metrics.
+
+```text
+Node.js Application
+      |
+      | /metrics
+      v
+ServiceMonitor
+      |
+      v
+Prometheus
+```
+
+<p align="center">
+
+  <img src="docs/screenshots/13-prometheus-targets.jpeg" alt="Prometheus targets" width="100%">
+
+</p>
+
+The Prometheus targets page shows that the Node.js application is successfully discovered and the target is in the **UP** state.
+
+This confirms that Prometheus is successfully collecting metrics from the application running in Amazon EKS.
+
+------------------------------------------------------------------------
+
+## 12. Grafana visualizes application metrics
+
+Grafana is connected to Prometheus and is used to visualize the application and Kubernetes metrics collected from the EKS cluster.
+
+The Grafana dashboard displays metrics such as:
+
+- HTTP request rate
+- Total HTTP requests
+- HTTP requests by status code
+- Running pods
+- Ready pods
+- Node.js pod memory usage
+- Pod CPU usage
+- Pod memory usage
+- Pod restart count
+
+```text
+Prometheus
+    |
+    | Metrics
+    v
+Grafana
+    |
+    v
+Observability Dashboard
+```
+
+<p align="center">
+
+  <img src="docs/screenshots/14-grafana-dashboard.png" alt="Grafana observability dashboard" width="100%">
+
+</p>
+
+The Grafana dashboard provides a centralized view of application performance and Kubernetes resource health.
+
+------------------------------------------------------------------------
+
+## 13. Application observability
+
+The final deployment provides observability for both the Node.js application and the Kubernetes environment.
+
+```text
+AWS EKS
+   |
+   +---- Node.js Application
+   |           |
+   |           | /metrics
+   |           v
+   |       Prometheus
+   |           |
+   |           v
+   |        Grafana
+   |
+   +---- Kubernetes Metrics
+```
+
+Prometheus collects the metrics while Grafana provides dashboards for visualizing application traffic, pod health, resource usage, and other runtime information.
+
+------------------------------------------------------------------------
+
+# 📁 Repository Structure
+
+## Application + Kubernetes Repository
+
+The application source code and Kubernetes manifests are maintained in the **same GitHub repository**.
+
+```text
 node-cicd-app/
+
 │
 ├── app.js
+├── server.js
 ├── package.json
 ├── package-lock.json
 ├── Dockerfile
 ├── Jenkinsfile
+├── sonar-project.properties
 ├── .gitignore
+├── .dockerignore
 ├── README.md
+│
+├── scripts/
+│   └── update-image.sh
 │
 ├── node-cicd-manifests/
 │   ├── deployment.yaml
-│   └── service.yaml
+│   ├── service.yaml
+│   ├── servicemonitor.yaml
 │   └── argocd-application.yaml
 │
 └── docs/
@@ -325,99 +600,145 @@ node-cicd-app/
         ├── 09-argocd-application.png
         ├── 10-running-application.jpeg
         ├── 11-gitops-commit.png
-        └── 12-webhook-loop-prevention.png
+        ├── 12-webhook-loop-prevention.png
+        ├── 13-prometheus-targets.jpeg
+        └── 14-grafana-dashboard.png
 ```
 
 ------------------------------------------------------------------------
 
-## 🧪 Node.js Application
+# 🧪 Node.js Application
 
-The sample application provides simple endpoints:
+The sample application provides simple endpoints.
 
-### Application endpoint
+## Application endpoint
 
-``` text
+```text
 GET /
 ```
 
 Example response:
 
-``` json
+```json
 {
   "message": "Hello from Node.js CI/CD!",
   "version": "1.0.0"
 }
 ```
 
-### Health endpoint
+## Health endpoint
 
-``` text
+```text
 GET /health
 ```
 
 Example response:
 
-``` json
+```json
 {
   "status": "UP"
 }
 ```
 
-The `/health` endpoint is used by Kubernetes health probes.
+The `/health` endpoint is used by Kubernetes readiness and liveness probes.
+
+## Prometheus metrics endpoint
+
+```text
+GET /metrics
+```
+
+The `/metrics` endpoint exposes Prometheus-compatible application metrics.
+
+Example metrics include:
+
+```text
+nodejs_http_requests_total
+process_resident_memory_bytes
+process_cpu_user_seconds_total
+```
+
+This endpoint is scraped by Prometheus through the Kubernetes `ServiceMonitor`.
 
 ------------------------------------------------------------------------
 
-## 🐳 Docker
+# 🐳 Docker
 
 Build locally:
 
-``` bash
+```bash
 docker build -t node-cicd-app:local .
 ```
 
 Run:
 
-``` bash
+```bash
 docker run --rm -p 3000:3000 node-cicd-app:local
 ```
 
-Test:
+Test the application:
 
-``` text
+```text
 http://localhost:3000
 ```
 
+Health endpoint:
+
+```text
+http://localhost:3000/health
+```
+
+Metrics endpoint:
+
+```text
+http://localhost:3000/metrics
+```
+
 ------------------------------------------------------------------------
 
-## ☸️ Kubernetes Deployment
+# ☸️ Kubernetes Deployment
 
-The Kubernetes deployment contains:
+The Kubernetes configuration is stored under:
 
--   Deployment
--   Multiple application replicas
--   Resource requests and limits
--   Readiness probe
--   Liveness probe
--   ClusterIP Service
+```text
+node-cicd-manifests/
+```
+
+The directory contains:
+
+```text
+deployment.yaml
+service.yaml
+servicemonitor.yaml
+argocd-application.yaml
+```
+
+The deployment contains:
+
+- Multiple application replicas
+- Resource requests and limits
+- Readiness probe
+- Liveness probe
 
 Example:
 
-``` yaml
+```yaml
 replicas: 2
 ```
 
-This allows Kubernetes to maintain multiple application pods and perform
-rolling updates.
+The Kubernetes Service exposes the application.
+
+The `ServiceMonitor` enables Prometheus to discover and scrape the application's `/metrics` endpoint.
 
 ------------------------------------------------------------------------
 
-## ☁️ Amazon EKS
+# ☁️ Amazon EKS
 
 The application is deployed to an Amazon EKS cluster.
 
 Typical deployment flow:
 
-``` text
+```text
 Docker Image
      |
      v
@@ -434,29 +755,42 @@ Kubernetes Deployment
      |
      v
 Node.js Pods
+     |
+     +---- Service
+     |
+     +---- ServiceMonitor
+              |
+              v
+          Prometheus
+              |
+              v
+           Grafana
 ```
 
 Useful commands:
 
-``` bash
+```bash
 kubectl get nodes
+
 kubectl get pods -n node-app
+
 kubectl get svc -n node-app
+
 kubectl get deployment -n node-app
 ```
 
 ------------------------------------------------------------------------
 
-## 🔱 Argo CD GitOps
+# 🔱 Argo CD GitOps
 
 Argo CD is responsible for continuous deployment.
 
-The desired Kubernetes state is stored in Git.
+The desired Kubernetes state is stored in the GitHub repository.
 
-``` text
-Git Repository
+```text
+GitHub Repository
       |
-      | Desired State
+      | Desired Kubernetes State
       v
     Argo CD
       |
@@ -465,30 +799,33 @@ Git Repository
  Kubernetes Cluster
 ```
 
-This means the Git repository acts as the source of truth for the
-deployment configuration.
+The Kubernetes manifests are located in:
+
+```text
+node-cicd-manifests/
+```
+
+Argo CD monitors these manifests and keeps the EKS cluster synchronized with the desired state stored in Git.
 
 ------------------------------------------------------------------------
 
-## 🔁 Image Update Automation
+# 🔁 Image Update Automation
 
-Instead of adding another image-updater service, this project uses a
-lightweight shell script.
+Instead of adding another image-updater service, this project uses a lightweight shell script.
 
 The script:
 
-1.  Reads the Jenkins build number.
-2.  Identifies the new Docker image tag.
-3.  Clones the Kubernetes manifest repository.
-4.  Updates `deployment.yaml`.
-5.  Commits the manifest change.
-6.  Pushes the change to GitHub.
-7.  Argo CD detects the Git change.
-8.  Argo CD synchronizes Kubernetes.
+1. Reads the Jenkins build number.
+2. Identifies the new Docker image tag.
+3. Updates `node-cicd-manifests/deployment.yaml`.
+4. Commits the manifest change.
+5. Pushes the change to GitHub.
+6. Argo CD detects the Git change.
+7. Argo CD synchronizes Kubernetes.
 
 Example:
 
-``` text
+```text
 Jenkins Build #15
        |
        v
@@ -501,10 +838,10 @@ node-cicd-app:15
 update-image.sh
        |
        v
-deployment.yaml
+node-cicd-manifests/deployment.yaml
        |
        v
-GitHub Manifest Repo
+GitHub
        |
        v
 Argo CD
@@ -515,70 +852,156 @@ EKS
 
 ------------------------------------------------------------------------
 
-## 🔐 Security Considerations
+# 📈 Prometheus Monitoring
 
-Secrets are not stored directly in the Jenkinsfile.
+Prometheus is deployed inside the Kubernetes cluster and collects metrics from the Node.js application and Kubernetes environment.
 
-The project uses Jenkins Credentials for:
+The Node.js application exposes:
 
--   GitHub authentication
--   Docker Hub authentication
--   SonarQube authentication
+```text
+/metrics
+```
 
-Recommended practices:
+A Kubernetes `ServiceMonitor` configures Prometheus to discover the application.
 
--   Use GitHub Personal Access Tokens instead of passwords.
--   Use Docker Hub access tokens.
--   Store credentials in Jenkins Credentials Manager.
--   Never commit secrets to Git.
--   Use `.gitignore` for local secret/configuration files.
--   Use Kubernetes Secrets or AWS Secrets Manager for sensitive runtime
-    configuration.
+```text
+Node.js Application
+       |
+       | /metrics
+       v
+ServiceMonitor
+       |
+       v
+Prometheus
+```
+
+Prometheus can be used to query application and Kubernetes metrics using PromQL.
+
+### HTTP request rate
+
+```promql
+sum(rate(nodejs_http_requests_total[5m]))
+```
+
+### Total HTTP requests
+
+```promql
+sum(nodejs_http_requests_total)
+```
+
+### HTTP requests by status code
+
+```promql
+sum by (status_code) (
+  rate(nodejs_http_requests_total[5m])
+)
+```
+
+### Running pods
+
+```promql
+count(
+  kube_pod_status_phase{
+    namespace="node-app",
+    phase="Running"
+  }
+)
+```
+
+### Ready pods
+
+```promql
+sum(
+  kube_pod_status_ready{
+    namespace="node-app",
+    condition="true"
+  }
+)
+```
+
+### Pod memory usage
+
+```promql
+sum by (pod) (
+  container_memory_working_set_bytes{
+    namespace="node-app",
+    container!="POD",
+    container!=""
+  }
+)
+```
+
+### Pod CPU usage
+
+```promql
+sum by (pod) (
+  rate(container_cpu_usage_seconds_total{
+    namespace="node-app",
+    container!="POD",
+    container!=""
+  }[5m])
+)
+```
+
+### Pod restart count
+
+```promql
+sum by (pod) (
+  kube_pod_container_status_restarts_total{
+    namespace="node-app"
+  }
+)
+```
 
 ------------------------------------------------------------------------
 
-## 🛑 Failure Handling
+# 📊 Grafana Observability
 
-The pipeline is designed to stop before deployment when validation
-fails.
+Grafana is used to visualize the metrics collected by Prometheus.
 
-### Test failure
+The custom dashboard contains panels for:
 
-``` text
-npm test
-   |
-   +--> FAIL
-          |
-          v
-     Pipeline stops
+```text
+HTTP Request Rate
+Total HTTP Requests
+HTTP Requests by Status Code
+Running Pods
+Ready Pods
+Node.js Pod Memory Usage
+Pod CPU Usage
+Pod Memory Usage
+Pod Restart Count
 ```
 
-### SonarQube quality failure
+The dashboard provides visibility into:
 
-``` text
-SonarQube
-   |
-   +--> FAIL
-          |
-          v
-     Pipeline stops
-          |
-          v
-     Notification
+- Application traffic
+- HTTP response status
+- Pod availability
+- Application resource usage
+- Kubernetes resource usage
+- Pod restart behavior
+
+```text
+Prometheus
+     |
+     | PromQL
+     v
+Grafana
+     |
+     v
+Node.js CI/CD Application Observability
 ```
-
-The Docker image and GitOps manifest are not updated when the required
-CI checks fail.
 
 ------------------------------------------------------------------------
 
-## 🖥️ Local Development Setup
+# 🖥️ Local Development Setup
 
-For a cost-conscious learning environment, Jenkins and SonarQube can run
-locally using Docker Desktop.
+For a cost-conscious learning environment, Jenkins and SonarQube can run locally using Docker Desktop.
 
-``` text
+```text
 Windows PC
+
 │
 ├── Docker Desktop
 │   ├── Jenkins
@@ -590,66 +1013,98 @@ Windows PC
 └── kubectl
 ```
 
-Argo CD runs inside the EKS cluster rather than requiring a separate EC2
-instance.
+Argo CD, Prometheus, Grafana, and the Node.js application run inside the EKS cluster.
 
-This reduces unnecessary cloud infrastructure for a personal portfolio
-project.
+This keeps the CI tools local while demonstrating cloud-native deployment and observability on Amazon EKS.
 
 ------------------------------------------------------------------------
 
-## 🚀 Running the Project Locally
+# 🚀 Running the Project Locally
 
-### Clone
+## Clone
 
-``` bash
+```bash
 git clone https://github.com/<your-username>/node-cicd-app.git
+
 cd node-cicd-app
 ```
 
-### Install dependencies
+## Install dependencies
 
-``` bash
+```bash
 npm ci
 ```
 
-### Run tests
+## Run tests
 
-``` bash
+```bash
 npm test
 ```
 
-### Start application
+## Start application
 
-``` bash
+```bash
 npm start
 ```
 
 Application:
 
-``` text
+```text
 http://localhost:3000
 ```
 
 Health endpoint:
 
-``` text
+```text
 http://localhost:3000/health
+```
+
+Metrics endpoint:
+
+```text
+http://localhost:3000/metrics
 ```
 
 ------------------------------------------------------------------------
 
-## 📄 License
+# 🛠️ Technology Stack
 
-This project is intended for educational and portfolio purposes.
+| Category | Technology |
+|---|---|
+| Application | Node.js |
+| Framework | Express.js |
+| Testing | Jest, Supertest |
+| Source Control | GitHub |
+| CI | Jenkins |
+| Code Quality | SonarQube |
+| Containerization | Docker |
+| Image Registry | Docker Hub |
+| Orchestration | Kubernetes |
+| Cloud | AWS |
+| Kubernetes Platform | Amazon EKS |
+| GitOps | Argo CD |
+| Monitoring | Prometheus |
+| Visualization | Grafana |
+| Metrics | PromQL |
+| Service Discovery | ServiceMonitor |
+| Automation | Bash Shell Script |
+| Configuration | Kubernetes YAML |
 
 
 ------------------------------------------------------------------------
 
-## 👨‍💻 Author
+# 📄 License
 
-**Your Name**
+This project is intended for educational and portfolio purposes.
+
+------------------------------------------------------------------------
+
+# 👨‍💻 Author
+
+**Vivek**
 
 GitHub: `https://github.com/Vivek7964`
 
 LinkedIn: `https://www.linkedin.com/in/bukkasamudram-vivekananda-reddy-244808294/`
+
+------------------------------------------------------------------------
